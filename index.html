@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OCR Models Comparison: Unlimited-OCR vs DeepSeek-OCR vs Falcon-OCR</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; line-height: 1.6; max-width: 1100px; margin: 0 auto; padding: 2rem; background: #f8f9fa; color: #222; }
+    h1 { color: #1a1a1a; border-bottom: 3px solid #0066cc; padding-bottom: 0.5rem; }
+    h2 { color: #0066cc; margin-top: 2rem; }
+    table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    th, td { border: 1px solid #ddd; padding: 0.75rem 1rem; text-align: left; }
+    th { background: #0066cc; color: white; }
+    tr:nth-child(even) { background: #f2f7ff; }
+    .highlight { background: #e8f5e9 !important; font-weight: 600; }
+    .note { background: #fff8e1; padding: 1rem; border-left: 4px solid #ffc107; margin: 1rem 0; }
+    .summary { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    footer { margin-top: 3rem; color: #666; font-size: 0.9rem; text-align: center; }
+  </style>
+</head>
+<body>
+  <h1>OCR Models Comparison</h1>
+  <p><strong>Unlimited-OCR</strong> (Baidu) vs <strong>DeepSeek-OCR / DeepSeek-OCR-2</strong> vs <strong>Falcon-OCR</strong> (TII)</p>
+  <p>Open-weight vision-language models for document parsing (text, tables, formulas, layout). Data as of mid/late 2026.</p>
+
+  <h2>Quick Specs</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Model</th>
+        <th>Organization</th>
+        <th>Params</th>
+        <th>Active Params</th>
+        <th>Key Innovation</th>
+        <th>License</th>
+        <th>Primary Strength</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="highlight">
+        <td><strong>Unlimited-OCR</strong></td>
+        <td>Baidu</td>
+        <td>~3.3B (MoE)</td>
+        <td>~0.5–0.57B</td>
+        <td>Reference Sliding Window Attention (R-SWA) — constant KV cache</td>
+        <td>MIT</td>
+        <td>Long multi-page documents in one pass</td>
+      </tr>
+      <tr>
+        <td><strong>DeepSeek-OCR</strong></td>
+        <td>DeepSeek</td>
+        <td>~3B (MoE)</td>
+        <td>~0.5–0.57B</td>
+        <td>High optical compression (vision tokens)</td>
+        <td>MIT</td>
+        <td>Efficient single-page compression</td>
+      </tr>
+      <tr>
+        <td><strong>DeepSeek-OCR-2</strong></td>
+        <td>DeepSeek</td>
+        <td>~3B (MoE)</td>
+        <td>~0.57B</td>
+        <td>Visual Causal Flow (better reading order)</td>
+        <td>Apache-2.0</td>
+        <td>Improved single-page accuracy + reading order</td>
+      </tr>
+      <tr>
+        <td><strong>Falcon-OCR</strong> (1.5)</td>
+        <td>TII (UAE)</td>
+        <td><strong>~0.27–0.3B</strong></td>
+        <td>Full (dense)</td>
+        <td>Early-fusion single Transformer</td>
+        <td>Apache-2.0</td>
+        <td>Extreme efficiency / speed / low resource</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>OmniDocBench Scores</h2>
+  <p>Overall score (higher is better). Numbers can vary slightly by exact benchmark version (v1.5 vs v1.6) and evaluation setup.</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Model</th>
+        <th>OmniDocBench Overall</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="highlight">
+        <td><strong>Unlimited-OCR</strong></td>
+        <td><strong>93.23</strong> (v1.5 paper) / <strong>93.92</strong> (v1.6 self-report) / ~94.00 (some leaderboards)</td>
+        <td>Strong gains over DeepSeek base, especially formulas and tables</td>
+      </tr>
+      <tr>
+        <td><strong>DeepSeek-OCR-2</strong></td>
+        <td>~89.2–91.1 (v1.5) / ~90.25 (v1.6)</td>
+        <td>Clear improvement over original DeepSeek-OCR</td>
+      </tr>
+      <tr>
+        <td><strong>DeepSeek-OCR</strong> (original)</td>
+        <td>~87.0–87.4</td>
+        <td>Baseline that Unlimited-OCR builds on</td>
+      </tr>
+      <tr>
+        <td><strong>Falcon-OCR 1.5</strong></td>
+        <td>~86.5 (e2e) / <strong>~93.15</strong> (with layout pipeline) / ~88.6 (older reports)</td>
+        <td>Competitive for its tiny size; pipeline mode closes the gap</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note">
+    <strong>Sub-metric highlights (Unlimited-OCR vs DeepSeek family on v1.5):</strong><br>
+    • Text edit distance: Unlimited 0.038 vs DeepSeek-OCR 0.073 vs DeepSeek-OCR-2 0.049<br>
+    • Formula CDM: Unlimited 92.61 vs DeepSeek-OCR 83.37 vs DeepSeek-OCR-2 86.85<br>
+    • Table TEDS: Unlimited 90.93 vs DeepSeek-OCR 84.97 vs DeepSeek-OCR-2 85.60
+  </div>
+
+  <h2>Architecture &amp; Key Differences</h2>
+  <ul>
+    <li><strong>DeepSeek-OCR / OCR-2</strong>: Heavy focus on <em>input</em> compression (few vision tokens per page). OCR-2 adds better visual causal flow for reading order. Excellent for single pages; KV cache grows with output length.</li>
+    <li><strong>Unlimited-OCR</strong>: Builds on DeepSeek-OCR and replaces decoder attention with <strong>R-SWA</strong>. Keeps the KV cache <em>constant</em> regardless of output length. Enables stable one-shot transcription of dozens of pages (~30–40 under 32K context).</li>
+    <li><strong>Falcon-OCR</strong>: Early-fusion design (image patches and text share the same Transformer from the first layer). Extremely small (~0.3B). Supports plain text / LaTeX / HTML table outputs via prompts. Highest throughput and lowest resource usage.</li>
+  </ul>
+
+  <h2>Practical Trade-offs</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Aspect</th>
+        <th>Unlimited-OCR</th>
+        <th>DeepSeek-OCR variants</th>
+        <th>Falcon-OCR</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Long documents (10–40+ pages)</strong></td>
+        <td class="highlight">Best (one-shot, flat memory/speed)</td>
+        <td>Page-by-page or chunking needed</td>
+        <td>Page-by-page preferred</td>
+      </tr>
+      <tr>
+        <td><strong>Single-page accuracy</strong></td>
+        <td>Excellent (top among the three)</td>
+        <td>Very good (OCR-2 stronger)</td>
+        <td>Good for size; pipeline mode helps</td>
+      </tr>
+      <tr>
+        <td><strong>Speed / Throughput</strong></td>
+        <td>Faster than base DeepSeek on long outputs; constant TPS</td>
+        <td>Good, but slows on long outputs</td>
+        <td class="highlight">Highest (tiny model)</td>
+      </tr>
+      <tr>
+        <td><strong>VRAM / Hardware</strong></td>
+        <td>Single mid-range GPU (8–16 GB workable)</td>
+        <td>Similar</td>
+        <td class="highlight">Lowest</td>
+      </tr>
+      <tr>
+        <td><strong>Best use case</strong></td>
+        <td>Books, multi-page contracts, long PDFs</td>
+        <td>High-volume single-page or compressed pretraining data</td>
+        <td>Edge / high-throughput / low-cost serving</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Summary Recommendation</h2>
+  <div class="summary">
+    <ul>
+      <li><strong>Long multi-page documents in one pass with stable memory?</strong> → <strong>Unlimited-OCR</strong> (clear evolution of DeepSeek-OCR).</li>
+      <li><strong>Original efficient optical-compression approach or slightly better single-page results?</strong> → DeepSeek-OCR-2.</li>
+      <li><strong>Lightest, fastest, lowest-resource model that is still competitive?</strong> → <strong>Falcon-OCR</strong> (impressive at ~0.3B).</li>
+    </ul>
+    <p>All three are open-weight and actively used. Real-world ranking depends on your exact document types (tables vs formulas vs handwriting vs multi-page length).</p>
+  </div>
+
+  <footer>
+    Generated from comparison discussion • October 2026<br>
+    Sources include model papers, Hugging Face cards, OmniDocBench evaluations, and technical reports.
+  </footer>
+</body>
+</html>
